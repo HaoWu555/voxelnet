@@ -11,7 +11,7 @@ import multiprocessing
 
 
 from config import cfg
-from utils.data_aug import aug_data
+#from utils.data_aug import aug_data
 from utils.preprocess import process_pointcloud
 
 class Processor:
