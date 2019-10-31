@@ -6,10 +6,11 @@ from config import cfg
 
 small_addon_for_BCE = 1e-6
 
-class MiddleAndRPN(object):
+class MiddleAndRPN(tf.keras.Model):
     def __init__(self,inputs,info,alpha=1.5,beta=1,sigma=3,training=True,name=''):
         # scale = [batchsize, 10, 400/200, 352/240, 128] should be the output of feature learning network
-        self.input = inputs
+        super(MiddleAndRPN,self).__init__(name=name)
+        self.inputs = inputs
         self.training=training
         self.targets= info["targets"]
         self.pos_equal_one = info["pos_equal_one"]
@@ -17,7 +18,7 @@ class MiddleAndRPN(object):
         self.pos_equal_one_for_reg = info["pos_equal_one_for_reg"]
         self.neg_equal_one = info["neg_equal_one"]
         self.neg_equal_one_sum = info["neg_equal_one_sum"]
-        temp_conv=ConvMD(3,128,64,3,(2,1,1),(1,1,1),self.input,name="conv1")
+        temp_conv=ConvMD(3,128,64,3,(2,1,1),(1,1,1),self.inputs,name="conv1")
         temp_conv=ConvMD(3,64,64,3,(1,1,1),(0,1,1),temp_conv,name="conv2")
         temp_conv=ConvMD(3,64,64,3,(2,1,1),(1,1,1),temp_conv,name="conv3")
         temp_conv = tf.transpose(a=temp_conv,perm=[0,2,3,4,1])
@@ -55,7 +56,7 @@ class MiddleAndRPN(object):
         # softmax output for positive anchor and negative anchor, scale = [None, 200/100, 176/120, 1]
         self.p_pos = tf.sigmoid(p_map)
         #self.p_pos = tf.nn.softmax(p_map, dim=3)
-        self.output_shape=[cfg.FEATURE_HEIGHT,cfg.FEATURE_WIDTH]
+        self.output_shapes=[cfg.FEATURE_HEIGHT,cfg.FEATURE_WIDTH]
 
         self.cls_pos_loss = (-self.pos_equal_one*tf.math.log(self.p_pos+small_addon_for_BCE))/self.pos_equal_one_sum
         self.cls_neg_loss = (-self.neg_equal_one*tf.math.log(1-self.p_pos+small_addon_for_BCE))/self.neg_equal_one_sum
@@ -82,8 +83,6 @@ def smooth_l1(deltas, targets, sigma=3.0):
     smooth_l1 = smooth_l1_add
 
     return smooth_l1
-
-
 
 
 def ConvMD(M,Cin,Cout,k,s,p,inputs,training=True,activation=None,bn=True,name='conv'):
@@ -114,7 +113,7 @@ def Deconv2D(Cin,Cout,k,s,p,inputs,training=True,activation=True,bn=True,name=""
     temp_conv = tf.keras.layers.Conv2DTranspose(Cout,kernel_size=k,data_format="channels_last",
                                                 strides=s,padding="SAME",name=name)(pad)
     if bn:
-        temp_conv = tf.keras.layers.BatchNormalization()(temp_conv,training=training)
+        temp_conv = tf.keras.layers.BatchNormalization(name=name)(temp_conv,training=training)
     temp_conv = tf.keras.layers.ReLU(name=name)(temp_conv)
     return temp_conv
 

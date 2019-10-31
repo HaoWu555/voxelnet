@@ -146,8 +146,8 @@ def sample_test_data(data_dir, batch_size=1, multi_gpu_sum=1):
            np.array(tag),
            np.array(labels),
            np.array(vox_feature),
-           np.array(vox_number),
-           np.array(vox_coordinate),
+           np.array(vox_number,dtype=np.int32),
+           np.array(vox_coordinate,dtype=np.int32),
            np.array(rgb),
            np.array(raw_lidar)
            )
