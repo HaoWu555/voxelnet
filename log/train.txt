@@ -1,0 +1,11 @@
+train: 1 @ epoch:0/2 loss: 31.6957 reg_loss: 14.4287 cls_loss: 17.2670 cls_pos_loss: 2.6539 cls_neg_loss: 1.4613 forward time: 47.0344 batch time: 47.7138 
+train: 2 @ epoch:0/2 loss: 31.7137 reg_loss: 16.4488 cls_loss: 15.2648 cls_pos_loss: 2.7055 cls_neg_loss: 1.2559 forward time: 47.5793 batch time: 1573035612.8949 
+train: 3 @ epoch:0/2 loss: 29.7028 reg_loss: 16.6535 cls_loss: 13.0493 cls_pos_loss: 2.4611 cls_neg_loss: 1.0588 forward time: 47.6374 batch time: 95.9598 
+train: 4 @ epoch:0/2 loss: 28.6569 reg_loss: 17.2439 cls_loss: 11.4130 cls_pos_loss: 2.6337 cls_neg_loss: 0.8779 forward time: 48.1809 batch time: 1573035661.6351 
+train: 5 @ epoch:0/2 loss: 23.0932 reg_loss: 12.9029 cls_loss: 10.1904 cls_pos_loss: 3.0410 cls_neg_loss: 0.7149 forward time: 49.3058 batch time: 145.8345 
+train: 6 @ epoch:0/2 loss: 22.9955 reg_loss: 11.8916 cls_loss: 11.1039 cls_pos_loss: 3.6054 cls_neg_loss: 0.7498 forward time: 57.9156 batch time: 1573035720.3327 
+train: 1 @ epoch:0/2 loss: 30.0356 reg_loss: 13.9558 cls_loss: 16.0798 cls_pos_loss: 1.4985 cls_neg_loss: 1.4581 forward time: 51.3264 batch time: 52.0319 
+train: 1 @ epoch:0/2 loss: 31.2532 reg_loss: 13.5231 cls_loss: 17.7301 cls_pos_loss: 2.9055 cls_neg_loss: 1.4825 forward time: 51.4290 batch time: 52.1082 
+train: 1 @ epoch:0/2 loss: 17.9026 reg_loss: 2.8826 cls_loss: 15.0200 cls_pos_loss: 1.4223 cls_neg_loss: 1.3598 forward time: 63.0065 batch time: 63.7419 
+train: 1 @ epoch:0/2 loss: 16.5048 reg_loss: 1.4135 cls_loss: 15.0913 cls_pos_loss: 1.4687 cls_neg_loss: 1.3623 forward time: 47.2589 batch time: 47.8679 
+train: 2 @ epoch:0/2 loss: 14.2187 reg_loss: 1.6906 cls_loss: 12.5281 cls_pos_loss: 1.8160 cls_neg_loss: 1.0712 forward time: 48.0368 batch time: 1573037651.1302 

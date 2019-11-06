@@ -87,25 +87,29 @@ class MiddleAndRPN(tf.keras.Model):
         temp_conv=tf.concat([deconv3,deconv2,deconv1],-1)
         p_map=self.conv2d_pro(temp_conv,training=self.training,activation=False,bn=False)
         r_map=self.conv2d_reg(temp_conv,training=self.training,activation=False,bn=False)
-        # softmax output for positive anchor and negative anchor, scale = [None, 200/100, 176/120, 1]
+        # softmax output for positive anchor and negative anchor, scale = [None, 200/100, 176/120, 1(2)]
         self.p_pos = tf.sigmoid(p_map)
         #self.p_pos = tf.nn.softmax(p_map, dim=3)
-        self.output_shapes=[cfg.FEATURE_HEIGHT,cfg.FEATURE_WIDTH]
+        self.output_shapes = [cfg.FEATURE_HEIGHT, cfg.FEATURE_WIDTH]
 
-        self.cls_pos_loss = (-self.pos_equal_one*tf.math.log(self.p_pos+small_addon_for_BCE))/self.pos_equal_one_sum
-        self.cls_neg_loss = (-self.neg_equal_one*tf.math.log(1-self.p_pos+small_addon_for_BCE))/self.neg_equal_one_sum
+        self.cls_pos_loss = (-self.pos_equal_one * tf.math.log(self.p_pos + small_addon_for_BCE)) / self.pos_equal_one_sum
+        self.cls_neg_loss = (-self.neg_equal_one * tf.math.log(1 - self.p_pos + small_addon_for_BCE)) / self.neg_equal_one_sum
+
         self.cls_loss = tf.reduce_sum( input_tensor=alpha * self.cls_pos_loss + beta * self.cls_neg_loss )
         self.cls_pos_loss_rec = tf.reduce_sum( input_tensor=self.cls_pos_loss )
         self.cls_neg_loss_rec = tf.reduce_sum( input_tensor=self.cls_neg_loss )
+
         self.reg_loss = smooth_l1(r_map * self.pos_equal_one_for_reg, self.targets *
-                                      self.pos_equal_one_for_reg, sigma) / self.pos_equal_one_sum
+                                  self.pos_equal_one_for_reg, sigma) / self.pos_equal_one_sum
         self.reg_loss = tf.reduce_sum(input_tensor=self.reg_loss)
+
         self.loss = tf.reduce_sum(input_tensor=self.cls_loss + self.reg_loss)
+
         self.delta_output = r_map
         self.prob_output = self.p_pos
-        return self
 
-@tf.function
+
+#@tf.function
 def smooth_l1(deltas, targets, sigma=3.0):
     sigma2 = sigma * sigma
     diffs = tf.subtract(deltas, targets)
@@ -133,10 +137,10 @@ class ConvMD(tf.keras.Model):
             self.paddings=(np.array(temp_p)).repeat(2).reshape(4,2)
             #pad=tf.pad(tensor=inputs,paddings=paddings,mode="CONSTANT",constant_values=0)
             self.conv=tf.keras.layers.Conv2D(Cout,kernel_size=k,strides=s,padding="valid",name=name)
-        self.batchnorm = tf.keras.layers.BatchNormalization(name=name)
+        self.batchnorm = tf.keras.layers.BatchNormalization(name=name+'/batch_norm')
         self.relu = tf.keras.layers.ReLU(name=name)
 
-    def __call__(self,inputs,training=True,activation=None,bn=True):
+    def __call__(self,inputs,training=True,activation=True,bn=True):
         pad = tf.pad(tensor=inputs,paddings=self.paddings,mode="CONSTANT",constant_values=0)
         temp_conv = self.conv(pad)
         if bn:
@@ -153,7 +157,7 @@ class Deconv2D(tf.keras.Model):
         self.padding = np.array(temp_p).repeat(2).reshape(4,2)
         self.conv2dtranspose = tf.keras.layers.Conv2DTranspose(Cout,kernel_size=k,data_format=
                                 "channels_last",strides=s,padding="SAME",name=name)
-        self.batchnorm=tf.keras.layers.BatchNormalization(name=name)
+        self.batchnorm=tf.keras.layers.BatchNormalization(name=name+'/batch_norm')
         self.relu = tf.keras.layers.ReLU(name=name)
 
     def __call__(self,inputs,training=True, activation=True,bn=True):
@@ -162,7 +166,7 @@ class Deconv2D(tf.keras.Model):
         if bn:
             temp_conv = self.batchnorm(temp_conv,training=training)
         if activation:
-            temp_conv = self.relu(temp_conv,training=training)
+            temp_conv = self.relu(temp_conv)
         return temp_conv
 
 #if(__name__ == "__main__"):
