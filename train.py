@@ -37,7 +37,7 @@ print(args)
 #parser.i = 1
 #parser.tag = 'Test1'
 #parser.single_batch_size = 2
-#parser.lr =0.001
+#parser.lr =0.00
 #parser.al =1
 #parser.output_path = './prediction'
 #parser.v=False
@@ -46,7 +46,8 @@ dataset_dir = cfg.DATA_DIR
 train_dir = os.path.join(cfg.DATA_DIR, 'training')
 val_dir = os.path.join(cfg.DATA_DIR, 'validation')
 log_dir = os.path.join('./log', args.tag)
-save_model_dir = os.path.join('./save_model', args.tag)
+save_model_dir = os.path.abspath(os.path.join('./save_model', args.tag))
+print(save_model_dir)
 os.makedirs(log_dir, exist_ok=True)
 os.makedirs(save_model_dir, exist_ok=True)
 
@@ -72,16 +73,28 @@ def get_data(batch):
     neg_equal_one_sum = tf.cast(neg_equal_one_sum,dtype=tf.float32)
     return voxel_feature,vox_number,voxel_coordinate,pos_equal_one,neg_equal_one,targets,pos_equal_one_for_reg,pos_equal_one_sum,neg_equal_one_sum
 
+
+
 if __name__ == '__main__':
     tf.config.experimental_run_functions_eagerly(True)
     train_summary_writer = tf.summary.create_file_writer('./summaries/train/')
     tf.random.set_seed(1)
 
     batch_size=args.single_batch_size
-    max_epoch = 1
+    max_epoch = 2
 
     # training only for bn and let it run in training mode but not inference mode
     model=RPN3D(cls=cfg.DETECT_OBJ,batch_size=batch_size, alpha=1.0,beta=10.0,training=False)
+    #print(tf.train.latest_checkpoint(os.path.normpath(save_model_dir)))
+    #if tf.train.latest_checkpoint(save_model_dir):
+    #    model.load_weights(save_model_dir)
+    #    print("Load the weights from {}".format(tf.train.latest_checkpoint(save_model_dir)))
+        #print("List of Variables: {}".format(tf.train.list_variables(tf.train.latest_checkpoint(save_model_dir))))
+    #else:
+    #    print("Scratching from Initial")
+
+    model.restore_model(save_model_dir)
+
     # save
     #model.save_weights(save_model_dir+'save_model_1')
     batch_time = time.time()
@@ -110,15 +123,18 @@ if __name__ == '__main__':
             batch_time = time.time() - batch_time
             forward_time = time.time() - start_time
 
+            # save model
+            filepath = os.path.join(save_model_dir,"RPN3D_epoch{}_idx".format(epoch,idx))
+            model.global_step.assign_add(tf.constant(1,dtype=tf.int32))
+            model.ckpt.step.assign_add(1)
+            model.save_model(save_model_dir)
+
             print('train: {} @ epoch:{}/{} loss: {:.4f} reg_loss: {:.4f} cls_loss: {:.4f} cls_pos_loss: {:.4f} cls_neg_loss: {:.4f} forward time: {:.4f} batch time: {:.4f} '.format(counter,epoch, max_epoch, ret[0].numpy(), ret[1].numpy(), ret[2].numpy(), ret[3].numpy(), ret[4].numpy(), forward_time, batch_time))
 
             with open('log/train.txt', 'a') as f:
                 f.write('train: {} @ epoch:{}/{} loss: {:.4f} reg_loss: {:.4f} cls_loss: {:.4f} cls_pos_loss: {:.4f} cls_neg_loss: {:.4f} forward time: {:.4f} batch time: {:.4f} '.format(counter,epoch, max_epoch, ret[0].numpy(), ret[1].numpy(), ret[2].numpy(), ret[3].numpy(), ret[4].numpy(), forward_time, batch_time))
-    print(model)
-    model.save_weights(save_model_dir)
-                #batches = iterate_data(train_dir)
-                #batch = next(batches)
-        # save model
-        #model.save('/save_model/',save_format='tf')
+
+    # save model automatically but could not setup the global setp
+    #model.save_weights(os.path.join(save_model_dir,"RPN3D_epoch_{}".format(epoch)))
 
 

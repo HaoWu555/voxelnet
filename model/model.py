@@ -16,7 +16,7 @@ class RPN3D(tf.keras.Model):
         self.batch_size = batch_size
         #self.learning_rate = tf.Variable(float(learning_rate), trainable=False, dtype=tf.float32)
         self.learning_rate = learning_rate
-        self.global_step = tf.Variable(1, trainable=False)
+        self.global_step = tf.Variable(0, trainable=False)
         #self.global_step = 1
         self.epoch = tf.Variable(0, trainable=False)
         #self.epoch = 0
@@ -41,7 +41,7 @@ class RPN3D(tf.keras.Model):
         self.pos_equal_one_for_reg = []
         self.neg_equal_one = []
         self.neg_equal_one_sum = []
-
+        self.trainable_params=[]
         #self.delta_output = []
         #self.prob_output = []
         self.opt = tf.keras.optimizers.Adam(learning_rate=self.lr)
@@ -49,6 +49,9 @@ class RPN3D(tf.keras.Model):
         #self.tower_grads = []
         self.rpn = MiddleAndRPN()
         self.feature = FeatureNet()
+
+        self.ckpt = tf.train.Checkpoint(step=self.global_step,optimizer=self.opt, model=self)
+
 
     @tf.function
     def train_step(self,voxel_feature,vox_number,voxel_coordinate,pos_equal_one,neg_equal_one,targets,pos_equal_one_for_reg,pos_equal_one_sum,neg_equal_one_sum,is_summary=False):
@@ -92,7 +95,26 @@ class RPN3D(tf.keras.Model):
 
         return ret
 
+    def save_model(self,save_model_path):
+        #ckpt = tf.train.Checkpoint(step=self.global_step,optimizer=self.opt, net=self)
+        manager = tf.train.CheckpointManager(self.ckpt,save_model_path,max_to_keep=3,checkpoint_name="RPN3D")
+        save_path=manager.save()
+        #print("Saved checkpoint for step {}: {}".format(int(ckpt.step), save_path))
+        print("Saved checkpoint: {}".format(save_path))
 
+    def restore_model(self,load_model_path):
+        print("Before restoring:")
+        print("trainable_variables:{}",self.trainable_params)
+        #ckpt = tf.train.Checkpoint(step=self.global_step,optimizer=self.opt, net=self)
+        manager = tf.train.CheckpointManager(self.ckpt,load_model_path,max_to_keep=3)
+        self.ckpt.restore(manager.latest_checkpoint)
+        print("After restoring:")
+        print("trainable_variables:{}",self.trainable_params)
+        print("Restore from global_step:{}".format(self.ckpt.step))
+        if manager.latest_checkpoint:
+            print("Restored from {}".format(manager.latest_checkpoint))
+        else:
+            print("Initializing from scratch.")
         #print("{}:{}".format("loss",self.loss))
         #print("{}:{}".format("reg_loss",self.reg_loss))
         #print("{}:{}".format("cls_loss",self.cls_loss))
