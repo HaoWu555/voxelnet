@@ -1,8 +1,0 @@
-model_checkpoint_path: "RPN3D-8"
-all_model_checkpoint_paths: "RPN3D-6"
-all_model_checkpoint_paths: "RPN3D-7"
-all_model_checkpoint_paths: "RPN3D-8"
-all_model_checkpoint_timestamps: 1573229038.4474273
-all_model_checkpoint_timestamps: 1573229320.3632848
-all_model_checkpoint_timestamps: 1573229374.3259451
-last_preserved_timestamp: 1573227050.6753385
