@@ -5,7 +5,7 @@ import os
 import numpy as np
 import tensorflow as tf
 import time
-
+import sys
 from config import cfg
 
 #voxel feature encoding
@@ -18,9 +18,10 @@ class VFELayer(tf.keras.Model):
     def __call__(self,inputs,mask,training):
         dense = self.dense(inputs)
         #[K,T,units]
-        pointwise = self.batch_norm(dense)
+        pointwise = self.batch_norm(dense,training=training)
         #[K,1,units]
         aggregated = tf.reduce_max(input_tensor=pointwise,axis=1,keepdims=True)
+        #tf.print(tf.shape(aggregated), output_stream=sys.stderr)
         #[K,T,units]
         repeated = tf.tile(aggregated,[1,cfg.VOXEL_POINT_COUNT,1])
         #[K,T,2*units]

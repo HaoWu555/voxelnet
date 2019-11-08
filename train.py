@@ -50,8 +50,30 @@ save_model_dir = os.path.join('./save_model', args.tag)
 os.makedirs(log_dir, exist_ok=True)
 os.makedirs(save_model_dir, exist_ok=True)
 
+def get_data(batch):
+    labels = batch[1]
+    # transfer to tensor is for avoid tracking
+    voxel_feature = tf.cast(batch[2],dtype=tf.float32)
+    vox_number = tf.cast(batch[3],dtype=tf.int32) # original is int64
+    voxel_coordinate =tf.cast(batch[4],dtype=tf.int32) # original is int64
+    rgb = batch[5]
+    raw_lidar = batch[6]
+
+    # get from labels
+    pos_equal_one, neg_equal_one, targets = cal_rpn_target(labels, [cfg.FEATURE_HEIGHT,cfg.FEATURE_WIDTH], anchors,cls=cfg.DETECT_OBJ,coordinate="lidar")
+    pos_equal_one_for_reg = np.concatenate([np.tile(pos_equal_one[..., [0]], 7), np.tile(pos_equal_one[..., [1]], 7)], axis=-1)
+    pos_equal_one_sum = np.clip(np.sum(pos_equal_one, axis=(1, 2, 3)).reshape(-1, 1, 1, 1), a_min=1, a_max=None)
+    neg_equal_one_sum = np.clip(np.sum(neg_equal_one, axis=(1, 2, 3)).reshape(-1, 1, 1, 1), a_min=1, a_max=None)
+    pos_equal_one = tf.cast(pos_equal_one,dtype=tf.float32)
+    neg_equal_one = tf.cast(neg_equal_one,dtype=tf.float32)
+    targets = tf.cast(targets,dtype=tf.float32)
+    pos_equal_one_for_reg = tf.cast(pos_equal_one_for_reg,dtype=tf.float32)
+    pos_equal_one_sum = tf.cast(pos_equal_one_sum,dtype=tf.float32)
+    neg_equal_one_sum = tf.cast(neg_equal_one_sum,dtype=tf.float32)
+    return voxel_feature,vox_number,voxel_coordinate,pos_equal_one,neg_equal_one,targets,pos_equal_one_for_reg,pos_equal_one_sum,neg_equal_one_sum
 
 if __name__ == '__main__':
+    tf.config.experimental_run_functions_eagerly(True)
     train_summary_writer = tf.summary.create_file_writer('./summaries/train/')
     tf.random.set_seed(1)
 
@@ -68,26 +90,13 @@ if __name__ == '__main__':
     anchors = cal_anchors()
     for epoch in range(max_epoch):
         for idx, batch in enumerate(iterate_data(train_dir,shuffle=True,aug=True,batch_size=batch_size,multi_gpu_sum=1,is_testset=False)):
-            if idx==3:
-                break
 
-            print(idx)
-            # get the data
+            if idx==1:
+                break
             tag = batch[0]
             print(tag)
-            labels = batch[1]
-            voxel_feature = batch[2]
-            vox_number = batch[3] # original is int64
-            voxel_coordinate =batch[4] # original is int64
-            rgb = batch[5]
-            raw_lidar = batch[6]
-
-            # get from labels
-            pos_equal_one, neg_equal_one, targets = cal_rpn_target(labels, [cfg.FEATURE_HEIGHT,cfg.FEATURE_WIDTH], anchors,cls=cfg.DETECT_OBJ,coordinate="lidar")
-            pos_equal_one_for_reg = np.concatenate([np.tile(pos_equal_one[..., [0]], 7), np.tile(pos_equal_one[..., [1]], 7)], axis=-1)
-            pos_equal_one_sum = np.clip(np.sum(pos_equal_one, axis=(1, 2, 3)).reshape(-1, 1, 1, 1), a_min=1, a_max=None)
-            neg_equal_one_sum = np.clip(np.sum(neg_equal_one, axis=(1, 2, 3)).reshape(-1, 1, 1, 1), a_min=1, a_max=None)
-
+            # get the data
+            voxel_feature,vox_number,voxel_coordinate,pos_equal_one,neg_equal_one,targets,pos_equal_one_for_reg,pos_equal_one_sum,neg_equal_one_sum = get_data(batch)
             counter += 1
             start_time = time.time()
 
@@ -97,17 +106,19 @@ if __name__ == '__main__':
                 is_summary = False
 
             with train_summary_writer.as_default():
-                model.train_step(voxel_feature=voxel_feature,vox_number=vox_number,voxel_coordinate=voxel_coordinate,pos_equal_one=pos_equal_one,neg_equal_one=neg_equal_one,targets=targets,pos_equal_one_for_reg=pos_equal_one_for_reg,pos_equal_one_sum=pos_equal_one_sum,neg_equal_one_sum=neg_equal_one_sum,is_summary=is_summary)
-            forward_time = time.time() - start_time
+                ret=model.train_step(voxel_feature=voxel_feature,vox_number=vox_number,voxel_coordinate=voxel_coordinate,pos_equal_one=pos_equal_one,neg_equal_one=neg_equal_one,targets=targets,pos_equal_one_for_reg=pos_equal_one_for_reg,pos_equal_one_sum=pos_equal_one_sum,neg_equal_one_sum=neg_equal_one_sum,is_summary=is_summary)
             batch_time = time.time() - batch_time
+            forward_time = time.time() - start_time
 
-            print('train: {} @ epoch:{}/{} loss: {:.4f} reg_loss: {:.4f} cls_loss: {:.4f} cls_pos_loss: {:.4f} cls_neg_loss: {:.4f} forward time: {:.4f} batch time: {:.4f} '.format(counter,epoch, max_epoch, model.loss, model.reg_loss, model.cls_loss, model.cls_pos_loss, model.cls_neg_loss, forward_time, batch_time))
+            print('train: {} @ epoch:{}/{} loss: {:.4f} reg_loss: {:.4f} cls_loss: {:.4f} cls_pos_loss: {:.4f} cls_neg_loss: {:.4f} forward time: {:.4f} batch time: {:.4f} '.format(counter,epoch, max_epoch, ret[0].numpy(), ret[1].numpy(), ret[2].numpy(), ret[3].numpy(), ret[4].numpy(), forward_time, batch_time))
 
             with open('log/train.txt', 'a') as f:
-                f.write( 'train: {} @ epoch:{}/{} loss: {:.4f} reg_loss: {:.4f} cls_loss: {:.4f} cls_pos_loss: {:.4f} cls_neg_loss: {:.4f} forward time: {:.4f} batch time: {:.4f} \n'.format(counter,epoch, max_epoch, model.loss, model.reg_loss, model.cls_loss, model.cls_pos_loss, model.cls_neg_loss, forward_time, batch_time))
-
-            #model.save_weights(save_model_dir)
+                f.write('train: {} @ epoch:{}/{} loss: {:.4f} reg_loss: {:.4f} cls_loss: {:.4f} cls_pos_loss: {:.4f} cls_neg_loss: {:.4f} forward time: {:.4f} batch time: {:.4f} '.format(counter,epoch, max_epoch, ret[0].numpy(), ret[1].numpy(), ret[2].numpy(), ret[3].numpy(), ret[4].numpy(), forward_time, batch_time))
+    print(model)
+    model.save_weights(save_model_dir)
                 #batches = iterate_data(train_dir)
                 #batch = next(batches)
         # save model
         #model.save('/save_model/',save_format='tf')
+
+

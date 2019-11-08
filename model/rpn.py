@@ -88,6 +88,7 @@ class MiddleAndRPN(tf.keras.Model):
         p_map=self.conv2d_pro(temp_conv,training=self.training,activation=False,bn=False)
         r_map=self.conv2d_reg(temp_conv,training=self.training,activation=False,bn=False)
         # softmax output for positive anchor and negative anchor, scale = [None, 200/100, 176/120, 1(2)]
+
         self.p_pos = tf.sigmoid(p_map)
         #self.p_pos = tf.nn.softmax(p_map, dim=3)
         self.output_shapes = [cfg.FEATURE_HEIGHT, cfg.FEATURE_WIDTH]

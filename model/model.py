@@ -14,10 +14,13 @@ class RPN3D(tf.keras.Model):
         super(RPN3D,self).__init__()
         self.cls = cls
         self.batch_size = batch_size
-        self.learning_rate = tf.Variable(float(learning_rate), trainable=False, dtype=tf.float32)
+        #self.learning_rate = tf.Variable(float(learning_rate), trainable=False, dtype=tf.float32)
+        self.learning_rate = learning_rate
         self.global_step = tf.Variable(1, trainable=False)
+        #self.global_step = 1
         self.epoch = tf.Variable(0, trainable=False)
-        self.epoch_add_op = self.epoch.assign(self.epoch + 1)
+        #self.epoch = 0
+        #self.epoch_add_op = self.epoch.assign(self.epoch + 1)
         self.alpha = alpha
         self.max_gradient_norm = max_gradient_norm
         self.beta = beta
@@ -47,44 +50,49 @@ class RPN3D(tf.keras.Model):
         self.rpn = MiddleAndRPN()
         self.feature = FeatureNet()
 
-    #@tf.function
+    @tf.function
     def train_step(self,voxel_feature,vox_number,voxel_coordinate,pos_equal_one,neg_equal_one,targets,pos_equal_one_for_reg,pos_equal_one_sum,neg_equal_one_sum,is_summary=False):
-            # model running
-            with tf.GradientTape() as tape:
-                # feature is initial address for saving class FeatureNet
-                self.feature(*voxel_feature,*voxel_coordinate,training=self.is_train,batch_size=self.batch_size)
-                self.rpn(inputs=self.feature.outputs,pos_equal_one=pos_equal_one,neg_equal_one=neg_equal_one,targets=targets,pos_equal_one_for_reg=pos_equal_one_for_reg,pos_equal_one_sum=pos_equal_one_sum,neg_equal_one_sum=neg_equal_one_sum,alpha=self.alpha, beta=self.beta, training=self.is_train)
+        # model running
+        with tf.GradientTape() as tape:
+            # feature is initial address for saving class FeatureNet
+            self.feature(input_feature=voxel_feature,coordinate=voxel_coordinate,training=self.is_train,batch_size=self.batch_size)
+            self.rpn(inputs=self.feature.outputs,pos_equal_one=pos_equal_one,neg_equal_one=neg_equal_one,targets=targets,pos_equal_one_for_reg=pos_equal_one_for_reg,pos_equal_one_sum=pos_equal_one_sum,neg_equal_one_sum=neg_equal_one_sum,alpha=self.alpha, beta=self.beta, training=self.is_train)
 
-            #update the parametr
-            # list add A + B
-            #self.params = rpn.variables+feature.variables
-            self.loss = self.rpn.loss
-            self.trainable_params = self.rpn.trainable_variables+self.feature.trainable_variables
+        #update the parametr
+        # list add A + B
+        #self.params = rpn.variables+feature.variables
+        self.loss = self.rpn.loss
+        self.trainable_params = self.rpn.trainable_variables+self.feature.trainable_variables
 
-            gradients = tape.gradient(self.loss,self.trainable_params)
-            # clip the gradients
-            clipped_gradients, gradient_norm = tf.clip_by_global_norm(gradients, self.max_gradient_norm)
-            self.opt.apply_gradients(zip(clipped_gradients,self.trainable_params))
+        gradients = tape.gradient(self.loss,self.trainable_params)
+        # clip the gradients
+        clipped_gradients, gradient_norm = tf.clip_by_global_norm(gradients, self.max_gradient_norm)
+        self.opt.apply_gradients(zip(clipped_gradients,self.trainable_params))
 
-            # output
-            self.feature_output = self.feature.outputs
-            self.delta_output=self.rpn.delta_output
-            self.prob_output=self.rpn.prob_output
+        # output
+        self.feature_output = self.feature.outputs
+        self.delta_output=self.rpn.delta_output
+        self.prob_output=self.rpn.prob_output
 
-            # loss and grad
-            self.reg_loss = self.rpn.reg_loss
-            self.cls_loss = self.rpn.cls_loss
-            self.cls_pos_loss = self.rpn.cls_pos_loss_rec
-            self.cls_neg_loss = self.rpn.cls_neg_loss_rec
+        # loss and grad
+        self.reg_loss = self.rpn.reg_loss
+        self.cls_loss = self.rpn.cls_loss
+        self.cls_pos_loss = self.rpn.cls_pos_loss_rec
+        self.cls_neg_loss = self.rpn.cls_neg_loss_rec
 
-            self.rpn_output_shape= self.rpn.output_shapes
+        self.rpn_output_shape= self.rpn.output_shapes
 
-            if is_summary:
-                tf.summary.scalar("loss",self.loss,step=self.opt.iterations)
-                tf.summary.scalar("reg_loss",self.reg_loss,step=self.opt.iterations)
-                tf.summary.scalar("cls_loss",self.cls_loss,step=self.opt.iterations)
+        if is_summary:
+            tf.summary.scalar("loss",self.loss,step=self.opt.iterations)
+            tf.summary.scalar("reg_loss",self.reg_loss,step=self.opt.iterations)
+            tf.summary.scalar("cls_loss",self.cls_loss,step=self.opt.iterations)
+
+        ret=[]
+        ret.extend((self.loss, self.reg_loss,self.cls_loss,self.cls_pos_loss,self.cls_neg_loss))
+
+        return ret
 
 
-            #print("{}:{}".format("loss",self.loss))
-            #print("{}:{}".format("reg_loss",self.reg_loss))
-            #print("{}:{}".format("cls_loss",self.cls_loss))
+        #print("{}:{}".format("loss",self.loss))
+        #print("{}:{}".format("reg_loss",self.reg_loss))
+        #print("{}:{}".format("cls_loss",self.cls_loss))

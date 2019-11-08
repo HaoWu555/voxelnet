@@ -81,11 +81,11 @@ def iterate_data(data_dir, shuffle=False, aug=False, is_testset=False, batch_siz
         # only for voxel -> [gpu, k_single_batch, ...]
         vox_feature, vox_number, vox_coordinate = [], [], []
         single_batch_size = int(batch_size / multi_gpu_sum)
-        for idx in range(multi_gpu_sum):
-            _, per_vox_feature, per_vox_number, per_vox_coordinate = build_input(voxel[idx * single_batch_size:(idx + 1) * single_batch_size])
-            vox_feature.append(per_vox_feature)
-            vox_number.append(per_vox_number)
-            vox_coordinate.append(per_vox_coordinate)
+        #for idx in range(multi_gpu_sum):
+        _, vox_feature, vox_number, vox_coordinate = build_input(voxel)
+        #vox_feature.append(per_vox_feature)
+        #vox_number.append(per_vox_number)
+        #vox_coordinate.append(per_vox_coordinate)
 
         ret = (
                np.array(tag),
@@ -136,11 +136,10 @@ def sample_test_data(data_dir, batch_size=1, multi_gpu_sum=1):
     # only for voxel -> [gpu, k_single_batch, ...]
     vox_feature, vox_number, vox_coordinate = [], [], []
     single_batch_size = int(batch_size / multi_gpu_sum)
-    for idx in range(multi_gpu_sum):
-        _, per_vox_feature, per_vox_number, per_vox_coordinate = build_input(voxel[idx * single_batch_size:(idx + 1) * single_batch_size])
-        vox_feature.append(per_vox_feature)
-        vox_number.append(per_vox_number)
-        vox_coordinate.append(per_vox_coordinate)
+    _, per_vox_feature, per_vox_number, per_vox_coordinate = build_input(voxel[idx * single_batch_size:(idx + 1) * single_batch_size])
+    vox_feature.append(per_vox_feature)
+    vox_number.append(per_vox_number)
+    vox_coordinate.append(per_vox_coordinate)
 
     ret = (
            np.array(tag),
