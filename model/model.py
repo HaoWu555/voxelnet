@@ -101,20 +101,24 @@ class RPN3D(tf.keras.Model):
         save_path=manager.save()
         #print("Saved checkpoint for step {}: {}".format(int(ckpt.step), save_path))
         print("Saved checkpoint: {}".format(save_path))
+        print("Saved step: {}".format(self.ckpt.step.numpy()))
+
 
     def restore_model(self,load_model_path):
-        print("Before restoring:")
-        print("trainable_variables:{}",self.trainable_params)
         #ckpt = tf.train.Checkpoint(step=self.global_step,optimizer=self.opt, net=self)
         manager = tf.train.CheckpointManager(self.ckpt,load_model_path,max_to_keep=3)
-        self.ckpt.restore(manager.latest_checkpoint)
-        print("After restoring:")
-        print("trainable_variables:{}",self.trainable_params)
-        print("Restore from global_step:{}".format(self.ckpt.step))
+        #print("Checkpoint: {}".format(manager.checkpoints))
+        print("Last_Checkpoint: {}".format(manager.latest_checkpoint))
+        status=self.ckpt.restore(manager.latest_checkpoint)
+        #status.assert_consumed()
+        #self.ckpt.restore(manager.checkpoints[0])
+        print("Restore from global_step:{}".format(self.ckpt.step.numpy()))
         if manager.latest_checkpoint:
             print("Restored from {}".format(manager.latest_checkpoint))
+            #print("Restored from {}".format(manager.checkpoints[0]))
         else:
             print("Initializing from scratch.")
+
         #print("{}:{}".format("loss",self.loss))
         #print("{}:{}".format("reg_loss",self.reg_loss))
         #print("{}:{}".format("cls_loss",self.cls_loss))

@@ -94,7 +94,7 @@ def iterate_data(data_dir, shuffle=False, aug=False, is_testset=False, batch_siz
                np.array(vox_number),
                np.array(vox_coordinate),
                np.array(rgb),
-               np.array(raw_lidar)
+               #np.array(raw_lidar)
                )
 
         yield ret
